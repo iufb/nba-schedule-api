@@ -5,14 +5,24 @@ import (
 )
 
 type Account struct {
-	Username       string
-	Timezone       string
-	FavouriteTeams []Team
+	Id        int       `json:"id" `
+	Username  string    `json:"username" `
+	Timezone  string    `json:"timezone" `
+	CreatedAt time.Time `json:"createdAt" `
+	// FavouriteTeams []Team
+}
+type CreateAccountRequest struct {
+	Username string
+	Timezone string
 }
 
-func NewAccount(username string, timezone string, ft []Team) *Account {
+type CreateAccountResponse struct {
+	Status string `json:"status"`
+}
+
+func NewAccount(username string, timezone string) *Account {
 	return &Account{
-		Username: username, Timezone: timezone, FavouriteTeams: ft,
+		Username: username, Timezone: timezone,
 	}
 }
 

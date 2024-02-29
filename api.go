@@ -5,23 +5,26 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
 type APIServer struct {
 	listenAddr string
+	store      Storage
 }
 
-func NewAPIServer(listenAddr string) *APIServer {
+func NewAPIServer(listenAddr string, store Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
+		store:      store,
 	}
 }
 
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
-	router.HandleFunc("/account", makeHttpHandleFunc(s.handleAccount))
+	router.HandleFunc("/account/{id}", makeHttpHandleFunc(s.handleAccount))
 	log.Println("Running on port : ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
@@ -41,12 +44,30 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	acc := NewAccount("iufb", "GMT+6", []Team{{Name: "GSW"}})
-	WriteJSON(w, http.StatusCreated, acc)
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return err
+	}
+	acc, err := s.store.GetAccountById(id)
+	if err != nil {
+		return err
+	}
+	WriteJSON(w, http.StatusOK, acc)
 	return nil
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+	createAccRq := &CreateAccountRequest{}
+	err := json.NewDecoder(r.Body).Decode(createAccRq)
+	if err != nil {
+		return err
+	}
+	account := NewAccount(createAccRq.Username, createAccRq.Timezone)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+	WriteJSON(w, http.StatusCreated, CreateAccountResponse{Status: "Created"})
 	return nil
 }
 
