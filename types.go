@@ -16,7 +16,7 @@ type CreateAccountRequest struct {
 	Timezone string
 }
 
-type CreateAccountResponse struct {
+type AccountRouteResponse struct {
 	Status string `json:"status"`
 }
 

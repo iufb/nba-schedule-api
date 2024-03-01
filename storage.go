@@ -61,15 +61,7 @@ func (s *PostgresStore) GetAccountById(id int) (*Account, error) {
     select * from accounts where id = $1
     `
 	row := s.db.QueryRow(query, id)
-	acc := Account{}
-	err := row.Scan(&acc.Id, &acc.Username, &acc.Timezone, &acc.CreatedAt)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No account found.")
-		}
-		fmt.Printf("Error while get account %s", err)
-	}
-	return &acc, nil
+	return scanIntoAccount(row)
 }
 
 func (s *PostgresStore) UpdateAccount(acc *Account) error {
@@ -77,5 +69,21 @@ func (s *PostgresStore) UpdateAccount(acc *Account) error {
 }
 
 func (s *PostgresStore) DeleteAccount(id int) error {
-	return nil
+	query := `
+    delete  from accounts where id=$1
+    `
+	_, err := s.db.Exec(query, id)
+	return err
+}
+
+func scanIntoAccount(r *sql.Row) (*Account, error) {
+	acc := &Account{}
+	err := r.Scan(&acc.Id, &acc.Username, &acc.Timezone, &acc.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No account found.")
+		}
+		fmt.Printf("Error while get account %s", err)
+	}
+	return acc, nil
 }
