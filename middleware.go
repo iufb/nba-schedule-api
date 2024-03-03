@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 func CreateJWT(acc *Account) (string, error) {
 	claims := &jwt.MapClaims{
 		"expiresAt": 15000,
+		"accountId": acc.Id,
 		"username":  acc.Username,
 	}
 	secret := os.Getenv("JWT_SECRET")
@@ -49,6 +51,13 @@ func AuthGuard(f http.HandlerFunc) http.HandlerFunc {
 			PermissionDenied(w)
 			return
 		}
-		f(w, r)
+		claims := token.Claims.(jwt.MapClaims)
+		accountId, ok := claims["accountId"]
+		if !ok {
+			PermissionDenied(w)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "accountId", int(accountId.(float64)))
+		f(w, r.WithContext(ctx))
 	}
 }

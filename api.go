@@ -29,6 +29,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/register", makeHttpHandleFunc(s.handleRegister))
 	router.HandleFunc("/accounts", makeHttpHandleFunc(s.handleAccountWithoutParams))
 	router.HandleFunc("/accounts/{id}", AuthGuard(makeHttpHandleFunc(s.handleAccountWithParams)))
+	router.HandleFunc("/teams", AuthGuard(makeHttpHandleFunc(s.handleTeamRoutes)))
 	log.Println("Running on port : ", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
 }
@@ -49,6 +50,18 @@ func (s *APIServer) handleAccountWithoutParams(w http.ResponseWriter, r *http.Re
 	switch r.Method {
 	// case "POST":
 	// 	return s.handleCreateAccount(w, r)
+	default:
+		return fmt.Errorf("Invalid method %s", r.Method)
+	}
+}
+
+func (s *APIServer) handleTeamRoutes(w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
+	case "GET":
+		return s.handleGetFavouriteTeams(w, r)
+	case "POST":
+		return s.handleAddTeamToFavorite(w, r)
+
 	default:
 		return fmt.Errorf("Invalid method %s", r.Method)
 	}
@@ -143,6 +156,35 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 	return WriteJSON(w, http.StatusOK, WithStatusResponse{Status: "Deleted"})
+}
+
+func (s *APIServer) handleAddTeamToFavorite(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "POST" {
+		return fmt.Errorf("Unallowed method %s : ", r.Method)
+	}
+	rqBody := &AddToFavourite{}
+	err := BodyDecoder(rqBody, r.Body)
+	if err != nil {
+		return err
+	}
+	accountId := r.Context().Value("accountId")
+	err = s.store.AddTeamToFavourite(accountId.(int), rqBody.Abbr)
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusCreated, WithStatusResponse{Status: "Created."})
+}
+
+func (s *APIServer) handleGetFavouriteTeams(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "GET" {
+		return fmt.Errorf("Unallowed method %s : ", r.Method)
+	}
+	accountId := r.Context().Value("accountId")
+	teams, err := s.store.GetAccountFavouriteTeams(accountId.(int))
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, teams)
 }
 
 type ApiError struct {

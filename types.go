@@ -17,6 +17,9 @@ type (
 	}
 )
 
+type AddToFavourite struct {
+	Abbr string `json:"abbr"`
+}
 type Account struct {
 	Id                int       `json:"id" `
 	Username          string    `json:"username" `
@@ -49,7 +52,8 @@ func NewAccount(username string, password string) (*Account, error) {
 }
 
 type Team struct {
-	Name string
+	Name string `json:"name"`
+	Abbr string `json:"abbr"`
 }
 
 type Schedule struct {
